@@ -36,7 +36,7 @@ to_english = defaultdict(lambda:None,\
     '()(())()': 'LE',
     '()(()())': 'not',
     '()((()))': 'readline',
-    '(())()()': 'intofchar',
+    '(())()()': 'ord',
     # fit new symbols here
     '((()))()': 'cons',
     '(())(())': 'equal',
@@ -186,7 +186,7 @@ def builtin_char(environment, params):
         Error("char must only be called on integers")
     return chr(int(result))
 
-def builtin_intofchar(environment, params):
+def builtin_ord(environment, params):
     result = interpret(params[0], environment)
     result = ord(result)
     return result
@@ -251,7 +251,7 @@ default_environment = \
      to_scheme['readline']: builtin_readline,
      to_scheme['charsof']: builtin_charsof,
      to_scheme['reverse']: builtin_reverse,
-     to_scheme['intofchar']: builtin_intofchar}
+     to_scheme['ord']: builtin_ord}
 
 # parse the tokens into an AST
 def parse(tokens):
@@ -330,7 +330,10 @@ def interpret_trees(trees, environment, doprint = True):
     return ret
 
 # read in the code ignoring all characters but '(' and ')' 
-f = open(sys.argv[1],'r')
+if (len(sys.argv) >= 2):
+    f = open(sys.argv[1],'r')
+else:
+    f = sys.stdin
 code = []
 for line in f.readlines():
     code += [c for c in line if c in '()']
