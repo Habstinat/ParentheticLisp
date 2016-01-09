@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from collections import defaultdict
 from itertools import izip
 import copy
@@ -7,46 +8,63 @@ import sys
 
 # map from paren strings to english names
 # for the predefined symbols (lambda, etc)
+# (((())))* is reserved for users
+# sorted by increasing complication:
+# 1. ()
+# 2. (())
+# 3. (()())
+# 4. ((()))
+# 5. (()()())
+# 6. (()(()))
+# 7. ((())())
+# 8. (((())))
 to_english = defaultdict(lambda:None,\
-    {'()': 'lambda',
-     '()()': 'define',
-     '(())': 'plus',
-     '(()())': 'minus',
-     '()(())': 'mult',
-     '(())()': 'div',
-     '()()()': 'if',
-     '(())(())': 'equal',
-     '()(())()': 'LE',
-     '()(()())': 'not',
-     '((()))': 'empty',
-     '((()))()': 'cons',
-     '((()))(())': 'car',
-     '((()))()()': 'cdr',
-     '(())(())()': 'char',
-     '(())()(())': 'string'})
+{
+    '()': 'lambda',
+
+    '()()': 'define',
+    '(())': 'plus',
+
+    '()()()': 'if',
+    '()(())': 'mult',
+    '(())()': 'div',
+    '(()())': 'minus',
+    '((()))': 'empty',
+
+    '()()()()': 'charsof',
+    '()()(())': 'reverse',
+    '()(())()': 'LE',
+    '()(()())': 'not',
+    '()((()))': 'readline',
+    '(())()()': 'intofchar',
+    # fit new symbols here
+    '((()))()': 'cons',
+    '(())(())': 'equal',
+
+    '((()))(())': 'car',
+    '((()))()()': 'cdr',
+    '(())(())()': 'char',
+    '(())()(())': 'string',
+})
 
 # map from english to parenthetic
 to_scheme = defaultdict(lambda:None)
 for k,v in to_english.iteritems():
     to_scheme[v] = k
 
-def Error(errorString = 'unmatched parens', debug_mode = False):
-    """Handle errors. If in debug_mode, prints the error string.
-    Otherwise raises an exception to trigger the ambiguous
-    'Parenthesis Mismatch' error.
-    """
-    
+class MismatchError(Exception): pass
+
+def Error(errorString = 'unmatched parens', debug_mode = True):
     if debug_mode:
         print "Error: " + errorString
         sys.exit()
     else:
-        raise Exception('paren mismatch')
+        raise MismatchError('paren mismatch')
     
 def bracketsMatch(chars):
     """Returns False if any parentheses in `chars` are not matched
     properly. Returns True otherwise.
     """
-
     level = 0
     for p in chars:
         if p == '(':
@@ -54,17 +72,14 @@ def bracketsMatch(chars):
         elif p == ')':
             level -= 1
         if level < 0:
-            return False
-    
+            return False    
     return level == 0
 
 def get_exprs(chars):
     """Returns a list of character sequences such that for each sequence,
     the first and last parenthesis match.
-
     For example, "(())()()" would be split into ["(())", "()", "()"]
     """
-
     level = 0
     current = []
     for p in chars:
@@ -78,12 +93,9 @@ def get_exprs(chars):
             yield current
             current = []
 
-
-
 ## built-in functions ##
 def builtin_accumulate(init, accumulate, environment, params):
     """Helper function that handles common logic for builtin functions.
-
     Given an initial value, and a two-parameter function, the environment, and
     a list of params to reduce, this function will reduce [init] + params using
     the accumulate function and finally returns the resulting value.
@@ -118,7 +130,6 @@ def builtin_LE(environment, params):
     return interpret(params[0], environment) <= interpret(params[1], environment)
 
 def builtin_lambda(environment, params):
-    
     bodies = [body for body in params[1:]]
     params = params[0][1]
     if len(bodies) == 0:
@@ -126,9 +137,7 @@ def builtin_lambda(environment, params):
     for kind, name in params:
         if kind != 'symbol':
             Error('lambda must have only symbols as arguments')
-
     def ret(old_environment, arguments):
-        #print bodies
         try:
             # create new environment based on args
             environment = copy.copy(old_environment)
@@ -148,8 +157,7 @@ def builtin_equal(environment, params):
 
 def builtin_if(environment, params):
     if len(params) != 3:
-        Error("'if' takes in exactly 3 params")
-    
+        Error("'if' takes in exactly 3 params")    
     if interpret(params[0], environment):
         return interpret(params[1], environment)
     return interpret(params[2], environment)
@@ -178,14 +186,49 @@ def builtin_char(environment, params):
         Error("char must only be called on integers")
     return chr(int(result))
 
+def builtin_intofchar(environment, params):
+    result = interpret(params[0], environment)
+    result = ord(result)
+    return result
+
 def builtin_string(environment, params):
     result = ''
     cur = interpret(params[0], environment)
     while cur != ():
         if not isinstance(cur, tuple) or not isinstance(cur[1], tuple):
-            Error("string only works on lists of chars")
+            Error("string only works on linked lists")
         result += cur[0]
         cur = cur[1]
+    return result
+
+def unmakelinked(llist):
+    result = ()
+    while llist != ():
+        if not isinstance(llist, tuple) or not isinstance(llist[1], tuple):
+            Error("only works on linked lists")
+        result += (llist[0],)
+        llist = llist[1]
+    return result
+
+def makelinked(tup):
+    result = ()
+    while tup != ():
+        result = (tup[-1],result)
+        tup = tup[:-1]
+    return result
+
+def builtin_reverse(environment, params):
+    result = interpret(params[0], environment)
+    result = makelinked(unmakelinked(result)[::-1])
+    return result
+
+def builtin_charsof(environment, params):
+    result = interpret(params[0], environment)
+    result = makelinked(tuple(result))
+    return result
+
+def builtin_readline(environment, params):
+    result = raw_input()
     return result
 
 # define the default (top-level) scope
@@ -204,19 +247,21 @@ default_environment = \
      to_scheme['cdr']: builtin_cdr,
      to_scheme['cons']: builtin_cons,
      to_scheme['char']: builtin_char,
-     to_scheme['string']: builtin_string}
+     to_scheme['string']: builtin_string,
+     to_scheme['readline']: builtin_readline,
+     to_scheme['charsof']: builtin_charsof,
+     to_scheme['reverse']: builtin_reverse,
+     to_scheme['intofchar']: builtin_intofchar}
 
 # parse the tokens into an AST
 def parse(tokens):
     """Accepts a list of parentheses and returns a list of ASTs.
-
     Each AST is a pair (type, value).
     If type is 'symbol', value will be the paren sequence corresponding
     to the symbol.
     If type is 'int', value will be a float that is equal to an int.
     If type is expr, value will be a list of ASTs.
     """
-
     # check for errors
     if not bracketsMatch(tokens):
         Error('paren mismatch')
@@ -225,13 +270,11 @@ def parse(tokens):
     for expr in get_exprs(tokens):
         # check for errors
         if len(expr) < 2:
-            Error('too few tokens in: ' + ''.join(tokens))
+            Error('too few tokens in: ' + ''.join(expr))
         elif expr[0] != '(' or expr[-1] != ')':
             Error('expression found without () as wrapper')
-        
         # pop off starting and ending ()s
         expr = expr[1:-1]
-        
         # symbol
         if expr[:2] == ['(', ')'] and len(expr) > 2:
             exprs.append(('symbol', ''.join(expr[2:])))
@@ -241,9 +284,7 @@ def parse(tokens):
         # expr
         else:
             exprs.append(('expr', parse(expr)))
-
     return exprs
-
 
 def interpret(tree, environment):
     """Interpret a single tree (may not be a define) and return the result"""
@@ -266,15 +307,10 @@ def interpret(tree, environment):
 def interpret_trees(trees, environment, doprint = True):
     """Interpret a sequence of trees (may contain defines)
     and output the result.
-
     The trees passed in should be ASTs as returned by parse().
     If doprint is true, the post-interpretation value of each tree is printed.
     """
-
     environment = copy.copy(environment)
-
-    # hoist define statements (note: trees.sort is stable)
-    trees.sort(key = lambda x: 0 if x[0] == 'expr' and x[1][0][1] == to_scheme['define'] else 1)
     ret = None
     for tree in trees:
         if tree[0] == 'expr' and tree[1][0][0] == 'symbol' and tree[1][0][1] == to_scheme['define']:
@@ -290,12 +326,13 @@ def interpret_trees(trees, environment, doprint = True):
         else:
             ret = interpret(tree, environment)
             if doprint:
-                print ret
+                print ret,
     return ret
 
 # read in the code ignoring all characters but '(' and ')' 
+f = open(sys.argv[1],'r')
 code = []
-for line in sys.stdin.readlines():
+for line in f.readlines():
     code += [c for c in line if c in '()']
 
 # parse and interpret the code. print 'Parenthesis Mismatch'
@@ -303,5 +340,5 @@ for line in sys.stdin.readlines():
 try:
     syntax_trees = parse(code)
     interpret_trees(syntax_trees, default_environment)
-except:
+except MismatchError:
     print 'Parenthesis Mismatch'
