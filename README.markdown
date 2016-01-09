@@ -456,13 +456,9 @@ Example:
         )
     )
 
-*Input*
+*Input*: `Hello`
 
-```Hello```
-
-*Output*
-
-```ello```
+*Output*: `ello`
 
 ###reverse
 
@@ -484,13 +480,9 @@ Example:
         )
     )
 
-*Input*
+*Input*: `Hello`
 
-```Hello```
-
-*Output*
-
-```olleH```
+*Output*: `olleH`
 
 ###readline
 
@@ -532,13 +524,9 @@ Example:
         )
     )
 
-*Input*
+*Input* `Hello`
 
-```Hello```
-
-*Output*
-
-```(Hello)```
+*Output* `(Hello)`
 
 ###ord
 
@@ -569,13 +557,9 @@ Example:
         )
     )
 
-*Input*
+*Input*: `a`
 
-```a```
-
-*Output*
-
-```A```
+*Output*: `A`
 
 ###char
 
@@ -678,6 +662,6 @@ You may find this useful if you wish to modify the interpreter's source code.
 
 ##Inspiration
 
-This language was inspired by a conversation with [Lucas](http://www.lucaswoj.com), who said that scheme looks like this: ())()()()))))(). Well, it does now!
+The original Parenthetic language was inspired by a conversation with [Lucas](http://www.lucaswoj.com), who said that scheme looks like this: ())()()()))))(). Well, it does now!
 
 Also the esoteric language [Parenthesis Hell](http://esolangs.org/wiki/Parenthesis_Hell) was a great inspiration.
