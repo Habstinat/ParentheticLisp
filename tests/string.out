@@ -1,6 +1,1 @@
-97.0
-a
-aa
-('a', ('b', ('c', ('d', ()))))
-abcd
-abcdabcd
+97.0 a aa ('a', ('b', ('c', ('d', ())))) abcd abcdabcd

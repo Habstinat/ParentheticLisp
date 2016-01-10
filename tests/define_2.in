@@ -3,9 +3,6 @@ tests:
     - define hoisting
     - define correctly modifies the correct scope
 
-(() (())(()))
-(() (())(())(()))
-
 (
     define 
     (() ()())
@@ -46,3 +43,6 @@ tests:
         ((()) ()()()())
     ))
 )
+
+(() (())(()))
+(() (())(())(()))
