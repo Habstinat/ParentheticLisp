@@ -99,7 +99,11 @@ Equivalent Lisp code:
 
     (* 2 5)
 
-It is also possible to define your own symbols, using the built-in 'define' function, whose symbol is ```()()```. For example, the following code defines ```(())(())``` as 6, then adds multiplies by 2 to get 12. Remember that all characters other than ```(``` and ```)``` characters are comments (including ```[``` and ```]```).:
+It is also possible to define your own symbols, using the built-in 'define' function, whose symbol is ```()()```. 
+
+Important: **If you want to write portable ParentheticLisp code that doesn't shadow any standard library functions, present or future, you should begin your user-defined symbols with** `(((())))`. Any standard library functions that are added in the future will not start with `(((())))`.
+
+For example, the following code defines ```(())(())``` as 6, then adds multiplies by 2 to get 12. Remember that all characters other than ```(``` and ```)``` characters are comments (including ```[``` and ```]```).:
 
     define [[]][[]] as 6
     (
